@@ -13,6 +13,7 @@ import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -24,7 +25,6 @@ import com.aistra.hail.app.HailApi
 import com.aistra.hail.app.HailData
 import com.aistra.hail.databinding.DialogInputBinding
 import com.aistra.hail.extensions.applyInsetsPadding
-import com.aistra.hail.extensions.isLandscape
 import com.aistra.hail.ui.main.MainActivity
 import com.aistra.hail.utils.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -53,9 +53,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         val view = super.onCreateView(inflater, container, savedInstanceState)
         val recyclerView = view.findViewById<RecyclerView>(R.id.recycler_view)
 
-        recyclerView.applyInsetsPadding(
-            start = !activity.isLandscape, end = true, bottom = activity.isLandscape
-        )
+        recyclerView.applyInsetsPadding(start = true, end = true, bottom = true)
 
         return view
     }
@@ -100,6 +98,10 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         findPreference<Preference>("clear_dynamic_shortcuts")?.setOnPreferenceClickListener {
             HShortcuts.removeAllDynamicShortcuts()
             HShortcuts.addDynamicShortcutAction(HailData.dynamicShortcutAction)
+            true
+        }
+        findPreference<Preference>("about")?.setOnPreferenceClickListener {
+            findNavController().navigate(R.id.nav_about)
             true
         }
     }

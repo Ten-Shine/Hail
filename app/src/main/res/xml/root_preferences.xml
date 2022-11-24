@@ -108,4 +108,11 @@
                 app:key="clear_dynamic_shortcuts"
                 app:title="@string/action_clear_dynamic_shortcuts"/>
     </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/title_about">
+        <Preference
+                app:icon="@drawable/ic_outline_info"
+                app:key="about"
+                app:title="@string/title_about" />
+    </PreferenceCategory>
 </PreferenceScreen>

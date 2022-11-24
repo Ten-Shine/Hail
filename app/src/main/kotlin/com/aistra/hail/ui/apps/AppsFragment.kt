@@ -19,7 +19,6 @@ import com.aistra.hail.app.AppManager
 import com.aistra.hail.app.HailData
 import com.aistra.hail.databinding.FragmentAppsBinding
 import com.aistra.hail.extensions.applyInsetsPadding
-import com.aistra.hail.extensions.isLandscape
 import com.aistra.hail.ui.main.MainFragment
 import com.aistra.hail.utils.HFiles
 import com.aistra.hail.utils.HPackages
@@ -60,9 +59,7 @@ class AppsFragment : MainFragment(), AppsAdapter.OnItemClickListener, AppsAdapte
             activity.appbar.setLiftOnScrollTargetView(this)
             layoutManager = GridLayoutManager(activity, resources.getInteger(R.integer.apps_span))
             adapter = appsAdapter
-            applyInsetsPadding(
-                start = !activity.isLandscape, end = true, bottom = activity.isLandscape
-            )
+            applyInsetsPadding(start = true, end = true, bottom = true)
             registerForContextMenu(this)
         }
 

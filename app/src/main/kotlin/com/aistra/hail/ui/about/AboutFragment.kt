@@ -11,7 +11,6 @@ import com.aistra.hail.R
 import com.aistra.hail.app.HailData
 import com.aistra.hail.databinding.FragmentAboutBinding
 import com.aistra.hail.extensions.applyInsetsPadding
-import com.aistra.hail.extensions.isLandscape
 import com.aistra.hail.ui.main.MainFragment
 import com.aistra.hail.utils.HUI
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -45,11 +44,7 @@ class AboutFragment : MainFragment(), View.OnClickListener {
         binding.actionTranslate.setOnClickListener(this)
         binding.actionLicenses.setOnClickListener(this)
 
-        binding.scrollView.applyInsetsPadding(
-            start = !activity.isLandscape,
-            end = true,
-            bottom = activity.isLandscape
-        )
+        binding.scrollView.applyInsetsPadding(start = true, end = true, bottom = true)
         return binding.root
     }
 

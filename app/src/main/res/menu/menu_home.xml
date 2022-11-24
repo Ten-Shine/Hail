@@ -2,6 +2,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
     <item
+        android:id="@+id/action_select_apps"
+        android:icon="@drawable/ic_baseline_android"
+        android:title="@string/title_apps"
+        app:showAsAction="always"
+        tools:ignore="AlwaysShowAction" />
+    <item
         android:id="@+id/action_search"
         android:icon="@drawable/ic_outline_search"
         android:title="@string/action_search"
@@ -66,4 +72,8 @@
             </group>
         </menu>
     </item>
+    <item
+        android:id="@+id/action_settings"
+        android:title="@string/title_settings"
+        app:showAsAction="never" />
 </menu>
