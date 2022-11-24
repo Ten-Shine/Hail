@@ -11,6 +11,7 @@ import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.aistra.hail.HailApp.Companion.app
@@ -23,7 +24,6 @@ import com.aistra.hail.app.HailData
 import com.aistra.hail.databinding.DialogInputBinding
 import com.aistra.hail.databinding.FragmentPagerBinding
 import com.aistra.hail.extensions.applyInsetsPadding
-import com.aistra.hail.extensions.isLandscape
 import com.aistra.hail.ui.main.MainFragment
 import com.aistra.hail.utils.*
 import com.aistra.hail.work.HWork
@@ -92,11 +92,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                 }
             })
 
-            this.applyInsetsPadding(
-                start = !activity.isLandscape,
-                end = true,
-                bottom = activity.isLandscape
-            )
+            this.applyInsetsPadding(start = true, end = true, bottom = true)
         }
         binding.refresh.setOnRefreshListener {
             updateCurrentList()
@@ -590,6 +586,8 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
 
             R.id.action_export_current -> exportToClipboard(pagerAdapter.currentList)
             R.id.action_export_all -> exportToClipboard(HailData.checkedList)
+            R.id.action_select_apps -> findNavController().navigate(R.id.nav_apps)
+            R.id.action_settings -> findNavController().navigate(R.id.nav_settings)
         }
         return false
     }

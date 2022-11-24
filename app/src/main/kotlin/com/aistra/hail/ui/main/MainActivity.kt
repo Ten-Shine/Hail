@@ -15,14 +15,13 @@ import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
-import androidx.navigation.ui.setupWithNavController
 import com.aistra.hail.R
 import com.aistra.hail.app.HailData
 import com.aistra.hail.databinding.ActivityMainBinding
 import com.aistra.hail.extensions.applyInsetsMargin
 import com.aistra.hail.extensions.applyInsetsPadding
-import com.aistra.hail.extensions.isLandscape
 import com.aistra.hail.utils.HPolicy
 import com.aistra.hail.utils.HUI
 import com.google.android.material.appbar.AppBarLayout
@@ -32,6 +31,8 @@ import com.google.android.material.floatingactionbutton.ExtendedFloatingActionBu
 class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedListener {
     lateinit var fab: ExtendedFloatingActionButton
     lateinit var appbar: AppBarLayout
+    private lateinit var navController: NavController
+    private lateinit var appBarConfiguration: AppBarConfiguration
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,32 +65,19 @@ class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedList
 
     private fun initView() = ActivityMainBinding.inflate(layoutInflater).apply {
         setContentView(root)
-        setSupportActionBar(appBarMain.toolbar)
-        fab = appBarMain.fab
-        appbar = appBarMain.appBarLayout
+        setSupportActionBar(toolbar)
+        this@MainActivity.fab = fab
+        this@MainActivity.appbar = appBarLayout
 
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        val navController = navHostFragment.navController
+        navController = navHostFragment.navController
         navController.addOnDestinationChangedListener(this@MainActivity)
-        val appBarConfiguration = AppBarConfiguration.Builder(
-            R.id.nav_home, R.id.nav_apps, R.id.nav_settings, R.id.nav_about
-        ).build()
+        appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
-        bottomNav?.setupWithNavController(navController)
-        navRail?.setupWithNavController(navController)
 
-        appBarMain.appBarLayout.applyInsetsPadding(
-            start = !isLandscape,
-            end = true,
-            top = true
-        )
-        bottomNav?.applyInsetsPadding(
-            start = true,
-            end = true,
-            bottom = true
-        )
-        fab.applyInsetsMargin(end = true, bottom = isLandscape)
+        appBarLayout.applyInsetsPadding(start = true, end = true, top = true)
+        fab.applyInsetsMargin(end = true, bottom = true)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -119,4 +107,7 @@ class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedList
         fab.tag = destination.id == R.id.nav_home
         if (fab.tag == true) fab.show() else fab.hide()
     }
+
+    override fun onSupportNavigateUp(): Boolean =
+        navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
 }
