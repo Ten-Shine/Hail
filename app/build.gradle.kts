@@ -85,4 +85,5 @@ dependencies {
     implementation("org.apache.commons:commons-text:1.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")
+    compileOnly("de.robv.android.xposed:api:82")
 }
