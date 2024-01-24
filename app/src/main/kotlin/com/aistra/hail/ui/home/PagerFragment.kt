@@ -3,7 +3,9 @@ package com.aistra.hail.ui.home
 import android.os.Bundle
 import android.provider.Settings
 import android.view.*
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.widget.SearchView
+import androidx.appcompat.widget.Toolbar
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
@@ -42,6 +44,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
     private lateinit var pagerAdapter: PagerAdapter
     private var multiselect: Boolean
         set(value) {
+            onBackPressedCallback.isEnabled = if (value) true else false
             (parentFragment as HomeFragment).multiselect = value
         }
         get() = (parentFragment as HomeFragment).multiselect
@@ -49,6 +52,14 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
     private val tabs: TabLayout get() = (parentFragment as HomeFragment).binding.tabs
     private val adapter get() = (parentFragment as HomeFragment).binding.pager.adapter as HomeAdapter
     private val tag: Pair<String, Int> get() = HailData.tags[tabs.selectedTabPosition]
+    private val onBackPressedCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            activity.appbar.findViewById<Toolbar>(R.id.toolbar)?.run {
+                menu.performIdentifierAction(R.id.action_multiselect, 0)
+            }
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -91,6 +102,9 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
             updateCurrentList()
             binding.refresh.isRefreshing = false
         }
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner, onBackPressedCallback
+        )
         return binding.root
     }
 
