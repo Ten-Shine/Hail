@@ -4,7 +4,9 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.*
 import android.widget.FrameLayout
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.widget.SearchView
+import androidx.appcompat.widget.Toolbar
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
@@ -92,6 +94,21 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
             updateCurrentList()
             binding.refresh.isRefreshing = false
         }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (multiselect) {
+                        multiselect = false
+                        deselect()
+                        activity.findViewById<Toolbar>(R.id.toolbar)?.run {
+                            menu.findItem(R.id.action_multiselect)?.updateIcon()
+                        }
+                    } else {
+                        requireActivity().finish()
+                    }
+                }
+            }
+        )
         return binding.root
     }
 
