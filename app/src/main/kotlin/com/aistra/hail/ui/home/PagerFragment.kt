@@ -172,10 +172,30 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
     override fun onItemLongClick(info: AppInfo): Boolean {
         info.applicationInfo ?: return false
         val actions = resources.getStringArray(R.array.home_action_entries)
-        if (onMultiSelect(info, actions)) return true
+
+        if (info in selectedList) {
+            MaterialAlertDialogBuilder(activity).setTitle(
+                getString(R.string.msg_selected, selectedList.size.toString())
+            ).setItems(actions.filter {
+                it != getString(R.string.action_launch) && it != getString(R.string.action_deferred_task) && it != getString(
+                    R.string.action_pin
+                ) && it != getString(R.string.action_unpin) && it != getString(R.string.action_add_pin_shortcut) && it != getString(
+                    R.string.action_whitelist
+                ) && it != getString(R.string.action_remove_whitelist)
+            }.toTypedArray()) { _, which ->
+                onMultiSelectActionHandle(which)
+            }.setNegativeButton(R.string.action_deselect) { _, _ ->
+                deselect()
+            }.setNeutralButton(R.string.action_select_all) { _, _ ->
+                selectedList.addAll(pagerAdapter.currentList.filterNot { it in selectedList })
+                updateCurrentList()
+                updateBarTitle()
+            }.show()
+            return true
+        }
+
         val pkg = info.packageName
         val frozen = AppManager.isAppFrozen(pkg)
-        val action = getString(if (frozen) R.string.action_unfreeze else R.string.action_freeze)
         MaterialAlertDialogBuilder(activity).setTitle(info.name).setItems(
             actions.filter {
                 (it != getString(R.string.action_freeze) || !frozen) && (it != getString(R.string.action_unfreeze) || frozen) && (it != getString(
@@ -187,86 +207,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                 ) || frozen)
             }.toTypedArray()
         ) { _, which ->
-            when (which) {
-                0 -> launchApp(pkg)
-                1 -> setListFrozen(!frozen, listOf(info))
-                2 -> {
-                    val values = resources.getIntArray(R.array.deferred_task_values)
-                    val entries = arrayOfNulls<String>(values.size)
-                    values.forEachIndexed { i, it ->
-                        entries[i] =
-                            resources.getQuantityString(R.plurals.deferred_task_entry, it, it)
-                    }
-                    MaterialAlertDialogBuilder(activity).setTitle(R.string.action_deferred_task)
-                        .setItems(entries) { _, i ->
-                            HWork.setDeferredFrozen(pkg, !frozen, values[i].toLong())
-                            Snackbar.make(
-                                activity.fab, resources.getQuantityString(
-                                    R.plurals.msg_deferred_task,
-                                    values[i],
-                                    values[i],
-                                    action,
-                                    info.name
-                                ), Snackbar.LENGTH_INDEFINITE
-                            ).setAction(R.string.action_undo) { HWork.cancelWork(pkg) }.show()
-                        }.setNegativeButton(android.R.string.cancel, null).show()
-                }
-
-                3 -> {
-                    info.pinned = !info.pinned
-                    HailData.saveApps()
-                    updateCurrentList()
-                }
-
-                4 -> {
-                    info.whitelisted = !info.whitelisted
-                    HailData.saveApps()
-                    info.selected = !info.selected // This is a workaround to make contents not same
-                    updateCurrentList()
-                }
-
-                5 -> {
-                    val checked = HailData.tags.indexOfFirst { it.second == info.tagId }
-                    MaterialAlertDialogBuilder(activity).setTitle(R.string.action_tag_set)
-                        .setSingleChoiceItems(
-                            HailData.tags.map { it.first }.toTypedArray(), checked
-                        ) { dialog, index ->
-                            if (info.tagId != HailData.tags[index].second) {
-                                info.tagId = HailData.tags[index].second
-                                HailData.saveApps()
-                                updateCurrentList()
-                            }
-                            dialog.dismiss()
-                        }.setNeutralButton(R.string.action_tag_add) { _, _ ->
-                            showTagDialog(listOf(info))
-                        }.setNegativeButton(android.R.string.cancel, null).show()
-                }
-
-                6 -> MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.action_unfreeze_tag)
-                    .setItems(HailData.tags.map { it.first }.toTypedArray()) { _, index ->
-                        HShortcuts.addPinShortcut(
-                            info,
-                            pkg,
-                            info.name,
-                            HailApi.getIntentForPackage(HailApi.ACTION_LAUNCH, pkg)
-                                .addTag(HailData.tags[index].first)
-                        )
-                    }.setPositiveButton(R.string.action_skip) { _, _ ->
-                        HShortcuts.addPinShortcut(
-                            info,
-                            pkg,
-                            info.name,
-                            HailApi.getIntentForPackage(HailApi.ACTION_LAUNCH, pkg)
-                        )
-                    }.setNegativeButton(android.R.string.cancel, null).show()
-
-                7 -> exportToClipboard(listOf(info))
-                8 -> removeCheckedApp(pkg)
-                9 -> {
-                    setListFrozen(false, listOf(info), false)
-                    if (!AppManager.isAppFrozen(pkg)) removeCheckedApp(pkg)
-                }
-            }
+            onOneSelectActionHandle(info, which)
         }.setNeutralButton(R.string.action_details) { _, _ ->
             HUI.startActivity(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS, HPackages.packageUri(pkg)
@@ -282,75 +223,142 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
         updateBarTitle()
     }
 
-    private fun onMultiSelect(info: AppInfo, actions: Array<String>): Boolean {
-        if (info !in selectedList) return false
-        MaterialAlertDialogBuilder(activity).setTitle(
-            getString(
-                R.string.msg_selected, selectedList.size.toString()
-            )
-        ).setItems(actions.filter {
-            it != getString(R.string.action_launch) && it != getString(R.string.action_deferred_task) && it != getString(
-                R.string.action_pin
-            ) && it != getString(R.string.action_unpin) && it != getString(R.string.action_add_pin_shortcut) && it != getString(
-                R.string.action_whitelist
-            ) && it != getString(R.string.action_remove_whitelist)
-        }.toTypedArray()) { _, which ->
-            when (which) {
-                0 -> {
-                    setListFrozen(true, selectedList, false)
-                    deselect()
+    private fun onOneSelectActionHandle(info: AppInfo, which: Int) {
+        val pkg = info.packageName
+        val frozen = AppManager.isAppFrozen(pkg)
+        val action = getString(if (frozen) R.string.action_unfreeze else R.string.action_freeze)
+        when (which) {
+            0 -> launchApp(pkg)
+            1 -> setListFrozen(!frozen, listOf(info))
+            2 -> {
+                val values = resources.getIntArray(R.array.deferred_task_values)
+                val entries = arrayOfNulls<String>(values.size)
+                values.forEachIndexed { i, it ->
+                    entries[i] =
+                        resources.getQuantityString(R.plurals.deferred_task_entry, it, it)
                 }
-
-                1 -> {
-                    setListFrozen(false, selectedList, false)
-                    deselect()
-                }
-
-                2 -> {
-                    val checked = if (selectedList.all { it.tagId == selectedList[0].tagId })
-                        HailData.tags.indexOfFirst { it.second == selectedList[0].tagId } else -1
-                    MaterialAlertDialogBuilder(activity).setTitle(R.string.action_tag_set)
-                        .setSingleChoiceItems(
-                            HailData.tags.map { it.first }.toTypedArray(), checked
-                        ) { dialog, index ->
-                            selectedList.forEach { it.tagId = HailData.tags[index].second }
-                            HailData.saveApps()
-                            deselect()
-                            dialog.dismiss()
-                        }.setNeutralButton(R.string.action_tag_add) { _, _ ->
-                            showTagDialog(selectedList)
-                        }.setNegativeButton(android.R.string.cancel, null).show()
-                }
-
-                3 -> {
-                    exportToClipboard(selectedList)
-                    deselect()
-                }
-
-                4 -> {
-                    selectedList.forEach { removeCheckedApp(it.packageName, false) }
-                    HailData.saveApps()
-                    deselect()
-                }
-
-                5 -> {
-                    setListFrozen(false, selectedList, false)
-                    selectedList.forEach {
-                        if (!AppManager.isAppFrozen(it.packageName))
-                            removeCheckedApp(it.packageName, false)
-                    }
-                    HailData.saveApps()
-                    deselect()
-                }
+                MaterialAlertDialogBuilder(activity).setTitle(R.string.action_deferred_task)
+                    .setItems(entries) { _, i ->
+                        HWork.setDeferredFrozen(pkg, !frozen, values[i].toLong())
+                        Snackbar.make(
+                            activity.fab, resources.getQuantityString(
+                                R.plurals.msg_deferred_task,
+                                values[i],
+                                values[i],
+                                action,
+                                info.name
+                            ), Snackbar.LENGTH_INDEFINITE
+                        ).setAction(R.string.action_undo) { HWork.cancelWork(pkg) }.show()
+                    }.setNegativeButton(android.R.string.cancel, null).show()
             }
-        }.setNegativeButton(R.string.action_deselect) { _, _ ->
-            deselect()
-        }.setNeutralButton(R.string.action_select_all) { _, _ ->
-            selectedList.addAll(pagerAdapter.currentList.filterNot { it in selectedList })
-            updateCurrentList()
-            updateBarTitle()
-        }.show()
-        return true
+
+            3 -> {
+                info.pinned = !info.pinned
+                HailData.saveApps()
+                updateCurrentList()
+            }
+
+            4 -> {
+                info.whitelisted = !info.whitelisted
+                HailData.saveApps()
+                info.selected =
+                    !info.selected // This is a workaround to make contents not same
+                updateCurrentList()
+            }
+
+            5 -> {
+                val checked = HailData.tags.indexOfFirst { it.second == info.tagId }
+                MaterialAlertDialogBuilder(activity).setTitle(R.string.action_tag_set)
+                    .setSingleChoiceItems(
+                        HailData.tags.map { it.first }.toTypedArray(), checked
+                    ) { dialog, index ->
+                        if (info.tagId != HailData.tags[index].second) {
+                            info.tagId = HailData.tags[index].second
+                            HailData.saveApps()
+                            updateCurrentList()
+                        }
+                        dialog.dismiss()
+                    }.setNeutralButton(R.string.action_tag_add) { _, _ ->
+                        showTagDialog(listOf(info))
+                    }.setNegativeButton(android.R.string.cancel, null).show()
+            }
+
+            6 -> MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.action_unfreeze_tag)
+                .setItems(HailData.tags.map { it.first }.toTypedArray()) { _, index ->
+                    HShortcuts.addPinShortcut(
+                        info,
+                        pkg,
+                        info.name,
+                        HailApi.getIntentForPackage(HailApi.ACTION_LAUNCH, pkg)
+                            .addTag(HailData.tags[index].first)
+                    )
+                }.setPositiveButton(R.string.action_skip) { _, _ ->
+                    HShortcuts.addPinShortcut(
+                        info,
+                        pkg,
+                        info.name,
+                        HailApi.getIntentForPackage(HailApi.ACTION_LAUNCH, pkg)
+                    )
+                }.setNegativeButton(android.R.string.cancel, null).show()
+
+            7 -> exportToClipboard(listOf(info))
+            8 -> removeCheckedApp(pkg)
+            9 -> {
+                setListFrozen(false, listOf(info), false)
+                if (!AppManager.isAppFrozen(pkg)) removeCheckedApp(pkg)
+            }
+        }
+    }
+
+    private fun onMultiSelectActionHandle(which: Int) {
+        when (which) {
+            0 -> {
+                setListFrozen(true, selectedList, false)
+                deselect()
+            }
+
+            1 -> {
+                setListFrozen(false, selectedList, false)
+                deselect()
+            }
+
+            2 -> {
+                val checked = if (selectedList.all { it.tagId == selectedList[0].tagId })
+                    HailData.tags.indexOfFirst { it.second == selectedList[0].tagId } else -1
+                MaterialAlertDialogBuilder(activity).setTitle(R.string.action_tag_set)
+                    .setSingleChoiceItems(
+                        HailData.tags.map { it.first }.toTypedArray(), checked
+                    ) { dialog, index ->
+                        selectedList.forEach { it.tagId = HailData.tags[index].second }
+                        HailData.saveApps()
+                        deselect()
+                        dialog.dismiss()
+                    }.setNeutralButton(R.string.action_tag_add) { _, _ ->
+                        showTagDialog(selectedList)
+                    }.setNegativeButton(android.R.string.cancel, null).show()
+            }
+
+            3 -> {
+                exportToClipboard(selectedList)
+                deselect()
+            }
+
+            4 -> {
+                selectedList.forEach { removeCheckedApp(it.packageName, false) }
+                HailData.saveApps()
+                deselect()
+            }
+
+            5 -> {
+                setListFrozen(false, selectedList, false)
+                selectedList.forEach {
+                    if (!AppManager.isAppFrozen(it.packageName))
+                        removeCheckedApp(it.packageName, false)
+                }
+                HailData.saveApps()
+                deselect()
+            }
+        }
     }
 
     private fun launchApp(packageName: String) {
