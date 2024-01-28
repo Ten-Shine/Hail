@@ -169,7 +169,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
         info.applicationInfo ?: return false
         val actions = resources.getStringArray(R.array.home_action_entries)
 
-        if (info in selectedList) {
+        if (info in selectedList && selectedList.size > 1) {
             MaterialAlertDialogBuilder(activity).setTitle(
                 getString(R.string.msg_selected, selectedList.size.toString())
             ).setItems(actions.filter {
@@ -204,11 +204,23 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
             }.toTypedArray()
         ) { _, which ->
             onOneSelectActionHandle(info, which)
-        }.setNeutralButton(R.string.action_details) { _, _ ->
-            HUI.startActivity(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS, HPackages.packageUri(pkg)
-            )
-        }.setNegativeButton(android.R.string.cancel, null).show()
+        }.apply {
+            if (multiselect) {
+                setNeutralButton(R.string.action_select_all) { _, _ ->
+                    selectedList.addAll(pagerAdapter.currentList.filterNot { it in selectedList })
+                    updateCurrentList()
+                    updateBarTitle()
+                }.setNegativeButton(R.string.action_deselect) { _, _ ->
+                    deselect()
+                }
+            } else {
+                setNeutralButton(R.string.action_details) { _, _ ->
+                    HUI.startActivity(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS, HPackages.packageUri(pkg)
+                    )
+                }.setNegativeButton(android.R.string.cancel, null)
+            }
+        }.show()
         return true
     }
 
@@ -245,6 +257,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                                 info.name
                             ), Snackbar.LENGTH_INDEFINITE
                         ).setAction(R.string.action_undo) { HWork.cancelWork(pkg) }.show()
+                        if (multiselect && info in selectedList) deselect()
                     }.setNegativeButton(android.R.string.cancel, null).show()
             }
 
@@ -273,6 +286,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                             HailData.saveApps()
                             updateCurrentList()
                         }
+                        if (multiselect && info in selectedList) deselect()
                         dialog.dismiss()
                     }.setNeutralButton(R.string.action_tag_add) { _, _ ->
                         showTagDialog(listOf(info))
@@ -288,6 +302,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                         HailApi.getIntentForPackage(HailApi.ACTION_LAUNCH, pkg)
                             .addTag(HailData.tags[index].first)
                     )
+                    if (multiselect && info in selectedList) deselect()
                 }.setPositiveButton(R.string.action_skip) { _, _ ->
                     HShortcuts.addPinShortcut(
                         info,
@@ -304,6 +319,8 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                 if (!AppManager.isAppFrozen(pkg)) removeCheckedApp(pkg)
             }
         }
+        if (multiselect && info in selectedList && which != 2 && which != 5 && which != 6)
+            deselect()
     }
 
     private fun onMultiSelectActionHandle(which: Int) {
