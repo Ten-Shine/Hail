@@ -3,7 +3,9 @@ package com.aistra.hail.ui.home
 import android.os.Bundle
 import android.provider.Settings
 import android.view.*
+import android.widget.ArrayAdapter
 import android.widget.FrameLayout
+import android.widget.ListView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
@@ -28,6 +30,8 @@ import com.aistra.hail.extensions.isLandscape
 import com.aistra.hail.ui.main.MainFragment
 import com.aistra.hail.utils.*
 import com.aistra.hail.work.HWork
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -90,7 +94,13 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                             postDelayed({ if (tag == true) show() }, 1000)
                         }
 
-                        RecyclerView.SCROLL_STATE_DRAGGING -> activity.fab.hide()
+                        RecyclerView.SCROLL_STATE_DRAGGING -> activity.run {
+                            fab.hide()
+                            if (HailData.useBottomSheet) {
+                                BottomSheetBehavior.from(bottomSheet).state =
+                                    BottomSheetBehavior.STATE_HIDDEN
+                            }
+                        }
                     }
                 }
             })
@@ -148,6 +158,60 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
             else getString(R.string.app_name)
     }
 
+    private fun updateBottomSheet(info: AppInfo? = null) {
+        val bottomSheet = activity.bottomSheet
+        val bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet)
+        val bottomNav: BottomNavigationView? = activity.findViewById(R.id.bottom_nav)
+
+        if (!HailData.useBottomSheet || !multiselect || selectedList.isEmpty() || info == null) {
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+            bottomNav?.visibility = View.VISIBLE
+            return
+        }
+
+        val actions: Array<String>
+        if (selectedList.size == 1) {
+            val pkg = info.packageName
+            val frozen = AppManager.isAppFrozen(pkg)
+            actions = resources.getStringArray(R.array.home_action_entries).filter {
+                (it != getString(R.string.action_freeze) || !frozen) && (it != getString(R.string.action_unfreeze) || frozen) && (it != getString(
+                    R.string.action_pin
+                ) || !info.pinned) && (it != getString(R.string.action_unpin) || info.pinned) && (it != getString(
+                    R.string.action_whitelist
+                ) || !info.whitelisted) && (it != getString(R.string.action_remove_whitelist) || info.whitelisted) && (it != getString(
+                    R.string.action_unfreeze_remove_home
+                ) || frozen)
+            }.toTypedArray()
+        } else {
+            actions = resources.getStringArray(R.array.home_action_entries).filter {
+                it != getString(R.string.action_launch) && it != getString(R.string.action_deferred_task) && it != getString(
+                    R.string.action_pin
+                ) && it != getString(R.string.action_unpin) && it != getString(R.string.action_add_pin_shortcut) && it != getString(
+                    R.string.action_whitelist
+                ) && it != getString(R.string.action_remove_whitelist)
+            }.toTypedArray()
+        }
+
+        val listView: ListView = bottomSheet.findViewById(R.id.bottom_sheet_list)
+        listView.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, actions)
+
+        listView.setOnItemClickListener { _, _, which, _ ->
+            if (selectedList.size == 1)
+                onOneSelectActionHandle(info, which)
+            else
+                onMultiSelectActionHandle(which)
+        }
+
+        if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_HIDDEN) {
+            bottomNav?.visibility = View.GONE
+            if (selectedList.size == 1) {
+                bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+            } else {
+                bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+            }
+        }
+    }
+
     override fun onItemClick(info: AppInfo) {
         if (info.applicationInfo == null) {
             Snackbar.make(activity.fab, R.string.app_not_installed, Snackbar.LENGTH_LONG)
@@ -158,6 +222,11 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
         if (multiselect) {
             if (info in selectedList) selectedList.remove(info)
             else selectedList.add(info)
+            if (HailData.useBottomSheet) {
+                if (selectedList.isEmpty())
+                    multiselect = false
+                updateBottomSheet(info)
+            }
             updateCurrentList()
             updateBarTitle()
             return
@@ -168,6 +237,16 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
     override fun onItemLongClick(info: AppInfo): Boolean {
         info.applicationInfo ?: return false
         val actions = resources.getStringArray(R.array.home_action_entries)
+
+        if (HailData.useBottomSheet) {
+            if (info in selectedList) selectedList.remove(info)
+            else selectedList.add(info)
+            multiselect = selectedList.isNotEmpty()
+            updateCurrentList()
+            updateBarTitle()
+            updateBottomSheet(info)
+            return true
+        }
 
         if (info in selectedList && selectedList.size > 1) {
             MaterialAlertDialogBuilder(activity).setTitle(
@@ -227,8 +306,11 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
     private fun deselect(update: Boolean = true) {
         selectedList.clear()
         if (!update) return
+        if (HailData.useBottomSheet)
+            multiselect = false
         updateCurrentList()
         updateBarTitle()
+        updateBottomSheet()
     }
 
     private fun onOneSelectActionHandle(info: AppInfo, which: Int) {
@@ -553,7 +635,11 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
 
             override fun onQueryTextSubmit(query: String): Boolean = true
         })
-        menu.findItem(R.id.action_multiselect).updateIcon()
+        if (HailData.useBottomSheet) {
+            menu.findItem(R.id.action_multiselect).setVisible(false)
+        } else {
+            menu.findItem(R.id.action_multiselect).updateIcon()
+        }
     }
 
     override fun onDestroyView() {

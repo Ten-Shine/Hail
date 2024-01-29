@@ -71,6 +71,7 @@ object HailData {
     private const val GRAYSCALE_ICON = "grayscale_icon"
     private const val COMPACT_ICON = "compact_icon"
     private const val SYNTHESIZE_ADAPTIVE_ICONS = "synthesize_adaptive_icons"
+    private const val USE_BOTTOM_SHEET = "use_bottom_sheet"
     const val AUTO_FREEZE_AFTER_LOCK = "auto_freeze_after_lock"
     private const val SKIP_WHILE_CHARGING = "skip_while_charging"
     const val SKIP_FOREGROUND_APP = "skip_foreground_app"
@@ -90,6 +91,7 @@ object HailData {
     val tileAction get() = sp.getString(TILE_ACTION, ACTION_FREEZE_ALL)
     val dynamicShortcutAction get() = sp.getString(DYNAMIC_SHORTCUT_ACTION, ACTION_NONE)!!
     val synthesizeAdaptiveIcons get() = sp.getBoolean(SYNTHESIZE_ADAPTIVE_ICONS, false)
+    val useBottomSheet get() = sp.getBoolean(USE_BOTTOM_SHEET, false)
     val autoFreezeAfterLock get() = sp.getBoolean(AUTO_FREEZE_AFTER_LOCK, false)
     val skipWhileCharging get() = sp.getBoolean(SKIP_WHILE_CHARGING, false)
     val skipForegroundApp get() = sp.getBoolean(SKIP_FOREGROUND_APP, false)
