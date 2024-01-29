@@ -43,6 +43,10 @@
                 app:key="tile_action"
                 app:title="@string/tile_action"
                 app:useSimpleSummaryProvider="true"/>
+        <SwitchPreferenceCompat
+            app:defaultValue="false"
+            app:key="use_bottom_sheet"
+            app:title="@string/use_bottom_sheet"/>
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/auto_freeze">

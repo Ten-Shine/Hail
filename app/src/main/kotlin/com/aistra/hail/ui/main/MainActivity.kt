@@ -1,6 +1,7 @@
 package com.aistra.hail.ui.main
 
 import android.os.Bundle
+import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
@@ -24,11 +25,13 @@ import com.aistra.hail.extensions.isLandscape
 import com.aistra.hail.utils.HPolicy
 import com.aistra.hail.utils.HUI
 import com.google.android.material.appbar.AppBarLayout
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 
 class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedListener {
     lateinit var fab: ExtendedFloatingActionButton
+    lateinit var bottomSheet: FrameLayout
     lateinit var appbar: AppBarLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,7 +67,10 @@ class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedList
         setContentView(root)
         setSupportActionBar(appBarMain.toolbar)
         fab = appBarMain.fab
+        bottomSheet = appBarMain.bottomSheet
         appbar = appBarMain.appBarLayout
+
+        BottomSheetBehavior.from(bottomSheet).state = BottomSheetBehavior.STATE_HIDDEN
 
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
