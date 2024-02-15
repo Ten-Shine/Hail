@@ -1,5 +1,6 @@
 package com.aistra.hail.app
 
+import android.content.Context
 import androidx.preference.PreferenceManager
 import com.aistra.hail.BuildConfig
 import com.aistra.hail.HailApp.Companion.app
@@ -62,6 +63,7 @@ object HailData {
     const val KEY_TAG = "tag"
     private const val KEY_PINNED = "pinned"
     private const val KEY_WHITELISTED = "whitelisted"
+    private const val KEY_WORKING_MODE = "working_mode"
     const val FILTER_USER_APPS = "filter_user_apps"
     const val FILTER_SYSTEM_APPS = "filter_system_apps"
     const val FILTER_FROZEN_APPS = "filter_frozen_apps"
@@ -112,7 +114,11 @@ object HailData {
                 for (i in 0 until json.length()) {
                     add(with(json.getJSONObject(i)) {
                         AppInfo(
-                            getString(KEY_PACKAGE), optBoolean(KEY_PINNED), optInt(KEY_TAG), optBoolean(KEY_WHITELISTED)
+                            getString(KEY_PACKAGE),
+                            optBoolean(KEY_PINNED),
+                            optInt(KEY_TAG),
+                            optBoolean(KEY_WHITELISTED),
+                            optString(KEY_WORKING_MODE, MODE_DEFAULT)
                         )
                     })
                 }
@@ -123,7 +129,7 @@ object HailData {
     fun isChecked(packageName: String): Boolean = checkedList.any { it.packageName == packageName }
 
     fun addCheckedApp(packageName: String, saveApps: Boolean = true, tagId: Int = 0) {
-        checkedList.add(AppInfo(packageName, false, tagId, false))
+        checkedList.add(AppInfo(packageName, false, tagId, false, MODE_DEFAULT))
         if (saveApps) saveApps()
     }
 
@@ -138,7 +144,7 @@ object HailData {
             checkedList.forEach {
                 put(
                     JSONObject().put(KEY_PACKAGE, it.packageName).put(KEY_PINNED, it.pinned).put(KEY_TAG, it.tagId)
-                        .put(KEY_WHITELISTED, it.whitelisted)
+                        .put(KEY_WHITELISTED, it.whitelisted).put(KEY_WORKING_MODE, it.workingMode)
                 )
             }
             toString()
@@ -166,6 +172,21 @@ object HailData {
             }
             toString()
         })
+    }
+
+    fun workingModeText(context: Context, workingMode: String): String = context.resources.run {
+        if (workingMode == MODE_DEFAULT) {
+            getString(
+                R.string.mode_default_summary,
+                getStringArray(R.array.working_mode_entries)[
+                    getStringArray(R.array.working_mode_values).indexOf(HailData.workingMode)
+                ]
+            )
+        } else {
+            getStringArray(R.array.working_mode_entries)[
+                getStringArray(R.array.working_mode_values).indexOf(workingMode)
+            ]
+        }
     }
 
     fun changeAppsSort(sort: String) = sp.edit().putString(SORT_BY, sort).apply()
