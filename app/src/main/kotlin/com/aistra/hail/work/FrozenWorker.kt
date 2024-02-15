@@ -9,7 +9,13 @@ import com.aistra.hail.app.HailData
 class FrozenWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
     override fun doWork(): Result {
         inputData.getString(HailData.KEY_PACKAGE)?.let {
-            AppManager.setAppFrozen(it, inputData.getBoolean(HailData.KEY_FROZEN, true))
+            val workingMode = HailData.checkedList.find { appInfo -> appInfo.packageName == it }
+                ?.workingMode.takeUnless { it == HailData.MODE_DEFAULT } ?: HailData.workingMode
+            AppManager.setAppFrozen(
+                it,
+                inputData.getBoolean(HailData.KEY_FROZEN, true),
+                workingMode
+            )
             return Result.success()
         }
         return Result.failure()

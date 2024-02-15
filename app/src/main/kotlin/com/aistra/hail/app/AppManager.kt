@@ -16,13 +16,18 @@ object AppManager {
             else -> false
         }
 
-    fun isAppFrozen(packageName: String): Boolean = when {
-        HailData.workingMode.endsWith(HailData.DISABLE) -> HPackages.isAppDisabled(packageName)
-        HailData.workingMode.endsWith(HailData.HIDE) -> HPackages.isAppHidden(packageName)
-        HailData.workingMode.endsWith(HailData.SUSPEND) -> HPackages.isAppSuspended(packageName)
-        else -> HPackages.isAppDisabled(packageName)
-                || HPackages.isAppHidden(packageName)
-                || HPackages.isAppSuspended(packageName)
+    fun isAppFrozen(packageName: String): Boolean {
+        val workingMode = HailData.checkedList.find { it.packageName == packageName }?.run {
+            workingMode.takeUnless { it == HailData.MODE_DEFAULT } ?: HailData.workingMode
+        } ?: ""
+        return when {
+            workingMode.endsWith(HailData.DISABLE) -> HPackages.isAppDisabled(packageName)
+            workingMode.endsWith(HailData.HIDE) -> HPackages.isAppHidden(packageName)
+            workingMode.endsWith(HailData.SUSPEND) -> HPackages.isAppSuspended(packageName)
+            else -> HPackages.isAppDisabled(packageName)
+                    || HPackages.isAppHidden(packageName)
+                    || HPackages.isAppSuspended(packageName)
+        }
     }
 
     fun setListFrozen(frozen: Boolean, vararg appInfo: AppInfo): String? {
@@ -36,7 +41,7 @@ object AppManager {
             else -> {
                 excludeMe.forEach {
                     when {
-                        setAppFrozen(it.packageName, frozen) -> {
+                        setAppFrozen(it.packageName, frozen, it.workingMode) -> {
                             i++
                             name = it.name.toString()
                         }
@@ -49,8 +54,8 @@ object AppManager {
         return if (denied && i == 0) null else if (i == 1) name else i.toString()
     }
 
-    fun setAppFrozen(packageName: String, frozen: Boolean): Boolean =
-        packageName != BuildConfig.APPLICATION_ID && when (HailData.workingMode) {
+    fun setAppFrozen(packageName: String, frozen: Boolean, workingMode: String): Boolean =
+        packageName != BuildConfig.APPLICATION_ID && when (workingMode) {
             HailData.MODE_OWNER_HIDE -> HPolicy.setAppHidden(packageName, frozen)
             HailData.MODE_OWNER_SUSPEND -> HPolicy.setAppSuspended(packageName, frozen)
             HailData.MODE_DHIZUKU_HIDE -> HDhizuku.setAppHidden(packageName, frozen)
@@ -63,6 +68,8 @@ object AppManager {
             HailData.MODE_SHIZUKU_SUSPEND -> HShizuku.setAppSuspended(packageName, frozen)
             HailData.MODE_ISLAND_HIDE -> HIsland.setAppHidden(packageName, frozen)
             HailData.MODE_ISLAND_SUSPEND -> HIsland.setAppSuspended(packageName, frozen)
+            HailData.MODE_DEFAULT -> if (HailData.workingMode != HailData.MODE_DEFAULT)
+                setAppFrozen(packageName, frozen, HailData.workingMode) else false
             else -> false
         }
 

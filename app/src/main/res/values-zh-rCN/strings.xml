@@ -140,4 +140,6 @@
     <string name="action_skip">跳过</string>
     <string name="shizuku_hide_adb">Shizuku 正以 adb 权限运行。如需隐藏应用，请通过 root 重新启动 Shizuku。</string>
     <string name="xposed_description">当作用域内的应用尝试打开被暂停的应用时自动解冻</string>
+    <string name="action_working_mode">修改工作模式</string>
+    <string name="mode_default_summary">默认：%s</string>
 </resources>

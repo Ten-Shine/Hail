@@ -98,7 +98,9 @@ class ApiActivity : AppCompatActivity() {
     private fun launchApp(pkg: String, tagId: Int? = null) {
         if (tagId != null) setListFrozen(false, HailData.checkedList.filter { it.tagId == tagId })
         if (AppManager.isAppFrozen(pkg)) {
-            if (AppManager.setAppFrozen(pkg, false)) app.setAutoFreezeService()
+            val workingMode = HailData.checkedList.find { it.packageName == packageName }
+                ?.workingMode.takeUnless { it == HailData.MODE_DEFAULT } ?: HailData.workingMode
+            if (AppManager.setAppFrozen(pkg, false, workingMode)) app.setAutoFreezeService()
             else throw IllegalStateException(getString(R.string.permission_denied))
         }
         packageManager.getLaunchIntentForPackage(pkg)?.let {
@@ -110,7 +112,9 @@ class ApiActivity : AppCompatActivity() {
     private fun setAppFrozen(pkg: String, frozen: Boolean) = when {
         frozen && !HailData.isChecked(pkg) -> throw SecurityException("package not checked")
         AppManager.isAppFrozen(pkg) != frozen && !AppManager.setAppFrozen(
-            pkg, frozen
+            pkg, frozen,
+            HailData.checkedList.find { it.packageName == packageName }
+                ?.workingMode.takeUnless { it == HailData.MODE_DEFAULT } ?: HailData.workingMode
         ) -> throw IllegalStateException(getString(R.string.permission_denied))
 
         else -> {

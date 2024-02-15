@@ -37,6 +37,15 @@
             android:maxLines="2"
             android:textAppearance="@style/TextAppearance.Material3.BodySmall"
             tools:text="com.aistra.hail" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/app_working_mode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            tools:text="@string/working_mode" />
     </LinearLayout>
 
     <com.google.android.material.checkbox.MaterialCheckBox

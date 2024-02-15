@@ -8,7 +8,8 @@ class AppInfo(
     val packageName: String,
     var pinned: Boolean,
     var tagId: Int,
-    var whitelisted: Boolean
+    var whitelisted: Boolean,
+    var workingMode: String
 ) {
     val applicationInfo: ApplicationInfo? get() = HPackages.getApplicationInfoOrNull(packageName)
     val name get() = applicationInfo?.loadLabel(app.packageManager) ?: packageName

@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.*
 import android.widget.CompoundButton
+import android.widget.TextView
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.view.MenuHost
@@ -171,10 +172,21 @@ class AppsFragment : MainFragment(), AppsAdapter.OnItemClickListener, AppsAdapte
     }
 
     override fun onItemCheckedChange(
-        buttonView: CompoundButton, isChecked: Boolean, packageName: String
+        buttonView: CompoundButton,
+        isChecked: Boolean,
+        packageName: String,
+        workingModeView: TextView
     ) {
-        if (isChecked) HailData.addCheckedApp(packageName)
-        else HailData.removeCheckedApp(packageName)
+        if (isChecked) {
+            HailData.addCheckedApp(packageName)
+            workingModeView.apply {
+                text = HailData.workingModeText(requireContext(), HailData.MODE_DEFAULT)
+                visibility = View.VISIBLE
+            }
+        } else {
+            HailData.removeCheckedApp(packageName)
+            workingModeView.visibility = View.GONE
+        }
         buttonView.isChecked = HailData.isChecked(packageName)
     }
 
