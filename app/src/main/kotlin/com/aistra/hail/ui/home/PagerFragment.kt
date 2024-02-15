@@ -148,7 +148,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
             updateBarTitle()
             return
         }
-        launchApp(info.packageName)
+        launchApp(info.packageName, info.workingMode)
     }
 
     override fun onItemLongClick(info: AppInfo): Boolean {
@@ -170,7 +170,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
             }.toTypedArray()
         ) { _, which ->
             when (which) {
-                0 -> launchApp(pkg)
+                0 -> launchApp(pkg, info.workingMode)
                 1 -> setListFrozen(!frozen, listOf(info))
                 2 -> {
                     val values = resources.getIntArray(R.array.deferred_task_values)
@@ -208,6 +208,27 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                 }
 
                 5 -> {
+                    val defaultString =
+                        HailData.workingModeText(requireContext(), HailData.MODE_DEFAULT)
+                    var selection = resources.getStringArray(R.array.working_mode_values)
+                        .indexOf(info.workingMode)
+                    MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.working_mode)
+                        .setSingleChoiceItems(
+                            resources.getStringArray(R.array.working_mode_entries)
+                                .mapIndexed { index, s ->
+                                    if (index == 0) defaultString
+                                    else s
+                                }.toTypedArray(), selection
+                        ) { _, index ->
+                            selection = index
+                        }.setPositiveButton(android.R.string.ok) { _, _ ->
+                            info.workingMode =
+                                resources.getStringArray(R.array.working_mode_values)[selection]
+                            HailData.saveApps()
+                        }.setNegativeButton(android.R.string.cancel, null).show()
+                }
+
+                6 -> {
                     val checked = HailData.tags.indexOfFirst { it.second == info.tagId }
                     MaterialAlertDialogBuilder(activity).setTitle(R.string.action_tag_set)
                         .setSingleChoiceItems(
@@ -224,7 +245,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                         }.setNegativeButton(android.R.string.cancel, null).show()
                 }
 
-                6 -> MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.action_unfreeze_tag)
+                7 -> MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.action_unfreeze_tag)
                     .setItems(HailData.tags.map { it.first }.toTypedArray()) { _, index ->
                         HShortcuts.addPinShortcut(
                             info,
@@ -242,9 +263,9 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                         )
                     }.setNegativeButton(android.R.string.cancel, null).show()
 
-                7 -> exportToClipboard(listOf(info))
-                8 -> removeCheckedApp(pkg)
-                9 -> {
+                8 -> exportToClipboard(listOf(info))
+                9 -> removeCheckedApp(pkg)
+                10 -> {
                     setListFrozen(false, listOf(info), false)
                     if (!AppManager.isAppFrozen(pkg)) removeCheckedApp(pkg)
                 }
@@ -289,6 +310,32 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                 }
 
                 2 -> {
+                    val defaultString =
+                        HailData.workingModeText(requireContext(), HailData.MODE_DEFAULT)
+                    var selection =
+                        if (selectedList.all { it.workingMode == selectedList[0].workingMode })
+                            resources.getStringArray(R.array.working_mode_values)
+                                .indexOf(selectedList[0].workingMode)
+                        else -1
+                    MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.working_mode)
+                        .setSingleChoiceItems(
+                            resources.getStringArray(R.array.working_mode_entries)
+                                .mapIndexed { index, s ->
+                                    if (index == 0) defaultString
+                                    else s
+                                }.toTypedArray(), selection
+                        ) { _, index ->
+                            selection = index
+                        }.setPositiveButton(android.R.string.ok) { _, _ ->
+                            if (selection != -1) selectedList.forEach {
+                                it.workingMode =
+                                    resources.getStringArray(R.array.working_mode_values)[selection]
+                            }
+                            deselect()
+                        }.setNegativeButton(android.R.string.cancel, null).show()
+                }
+
+                3 -> {
                     val checked = if (selectedList.all { it.tagId == selectedList[0].tagId })
                         HailData.tags.indexOfFirst { it.second == selectedList[0].tagId } else -1
                     MaterialAlertDialogBuilder(activity).setTitle(R.string.action_tag_set)
@@ -304,18 +351,18 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                         }.setNegativeButton(android.R.string.cancel, null).show()
                 }
 
-                3 -> {
+                4 -> {
                     exportToClipboard(selectedList)
                     deselect()
                 }
 
-                4 -> {
+                5 -> {
                     selectedList.forEach { removeCheckedApp(it.packageName, false) }
                     HailData.saveApps()
                     deselect()
                 }
 
-                5 -> {
+                6 -> {
                     setListFrozen(false, selectedList, false)
                     selectedList.forEach {
                         if (!AppManager.isAppFrozen(it.packageName))
@@ -335,8 +382,10 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
         return true
     }
 
-    private fun launchApp(packageName: String) {
-        if (AppManager.isAppFrozen(packageName) && AppManager.setAppFrozen(packageName, false)) {
+    private fun launchApp(packageName: String, workingMode: String) {
+        if (AppManager.isAppFrozen(packageName) &&
+            AppManager.setAppFrozen(packageName, false, workingMode)
+        ) {
             updateCurrentList()
         }
         app.packageManager.getLaunchIntentForPackage(packageName)?.let {

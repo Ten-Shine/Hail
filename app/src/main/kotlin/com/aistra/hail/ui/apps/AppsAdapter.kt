@@ -2,8 +2,10 @@ package com.aistra.hail.ui.apps
 
 import android.content.pm.ApplicationInfo
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.widget.CompoundButton
+import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -60,7 +62,12 @@ class AppsAdapter : ListAdapter<ApplicationInfo, AppsAdapter.ViewHolder>(DIFF) {
                 isLongClickable = true
             }
             binding.appStar.setOnCheckedChangeListener { button, isChecked ->
-                if (!updating) onItemCheckedChangeListener.onItemCheckedChange(button, isChecked, pkg)
+                if (!updating) onItemCheckedChangeListener.onItemCheckedChange(
+                    button,
+                    isChecked,
+                    pkg,
+                    binding.appWorkingMode
+                )
             }
         }
 
@@ -84,6 +91,19 @@ class AppsAdapter : ListAdapter<ApplicationInfo, AppsAdapter.ViewHolder>(DIFF) {
                 isEnabled = !HailData.grayscaleIcon || !frozen
             }
             binding.appStar.isChecked = HailData.isChecked(pkg)
+            binding.appWorkingMode.apply {
+                if (binding.appStar.isChecked) {
+                    val appInfo = HailData.checkedList.find { it.packageName == pkg }
+                    text = HailData.workingModeText(
+                        context,
+                        appInfo?.workingMode ?: HailData.MODE_DEFAULT
+                    )
+                    visibility = View.VISIBLE
+                } else {
+                    visibility = View.GONE
+                }
+                isEnabled = !HailData.grayscaleIcon || !frozen
+            }
             updating = false
         }
     }
@@ -93,6 +113,11 @@ class AppsAdapter : ListAdapter<ApplicationInfo, AppsAdapter.ViewHolder>(DIFF) {
     }
 
     interface OnItemCheckedChangeListener {
-        fun onItemCheckedChange(buttonView: CompoundButton, isChecked: Boolean, packageName: String)
+        fun onItemCheckedChange(
+            buttonView: CompoundButton,
+            isChecked: Boolean,
+            packageName: String,
+            workingModeView: TextView
+        )
     }
 }

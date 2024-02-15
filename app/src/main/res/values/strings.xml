@@ -51,6 +51,7 @@
     <string name="mode_shizuku_disable">Shizuku - Disable</string>
     <string name="mode_shizuku_hide">Shizuku - Hide</string>
     <string name="mode_shizuku_suspend">Shizuku - Suspend</string>
+    <string name="mode_default_summary">Default: %s</string>
     <string name="title_set_owner">Set Device Owner</string>
     <string name="msg_set_owner">Issue the command from adb:\n%s</string>
     <string name="title_remove_owner">Remove Device Owner</string>
@@ -112,6 +113,7 @@
     <string name="action_unpin">Unpin</string>
     <string name="action_whitelist">Add to Whitelist</string>
     <string name="action_remove_whitelist">Remove from Whitelist</string>
+    <string name="action_working_mode">Change working mode</string>
     <string name="nothing_here">Nothing here</string>
     <string name="action_import_frozen">Import frozen app</string>
     <string name="action_import_app">Import app</string>
