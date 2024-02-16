@@ -143,4 +143,5 @@
     <string name="mode_default_summary">默认：%s</string>
     <string name="sort_checked">优先已勾选</string>
     <string name="shizuku_hide_adb">Shizuku 正以 adb 权限运行。如需隐藏应用，请通过 root 重新启动 Shizuku。</string>
+    <string name="ninekey_search">九键搜索</string>
 </resources>

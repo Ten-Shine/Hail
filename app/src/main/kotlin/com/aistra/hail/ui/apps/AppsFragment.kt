@@ -2,6 +2,7 @@ package com.aistra.hail.ui.apps
 
 import android.os.Bundle
 import android.provider.Settings
+import android.text.InputType
 import android.view.ContextMenu
 import android.view.LayoutInflater
 import android.view.Menu
@@ -10,6 +11,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CompoundButton
+import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
 import androidx.appcompat.widget.SearchView
@@ -224,6 +226,13 @@ class AppsFragment : MainFragment(), AppsAdapter.OnItemClickListener,
     override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_apps, menu)
         val searchView = menu.findItem(R.id.action_search).actionView as SearchView
+
+        if (HailData.useNineKey) {
+            val editText =
+                searchView.findViewById<EditText>(androidx.appcompat.R.id.search_src_text)
+            editText.inputType = InputType.TYPE_CLASS_PHONE
+        }
+
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextChange(newText: String): Boolean {
                 model.postQuery(newText, if (newText.isEmpty()) 0L else 300L)
