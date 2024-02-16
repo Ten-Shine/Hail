@@ -141,4 +141,5 @@
     <string name="xposed_description">当作用域内的应用尝试打开被暂停的应用时自动解冻</string>
     <string name="action_working_mode">修改工作模式</string>
     <string name="mode_default_summary">默认：%s</string>
+    <string name="sort_checked">优先已勾选</string>
 </resources>

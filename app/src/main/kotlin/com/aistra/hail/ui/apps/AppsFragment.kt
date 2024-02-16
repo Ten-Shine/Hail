@@ -215,6 +215,7 @@ class AppsFragment : MainFragment(), AppsAdapter.OnItemClickListener, AppsAdapte
                 else -> R.id.sort_by_name
             }
         ).isChecked = true
+        menu.findItem(R.id.sort_by_checked).isChecked = HailData.sortByChecked
         menu.findItem(
             if (HailData.filterSystemApps) R.id.filter_system_apps else R.id.filter_user_apps
         ).isChecked = true
@@ -227,6 +228,7 @@ class AppsFragment : MainFragment(), AppsAdapter.OnItemClickListener, AppsAdapte
             R.id.sort_by_name -> changeAppsSort(HailData.SORT_NAME, item)
             R.id.sort_by_install -> changeAppsSort(HailData.SORT_INSTALL, item)
             R.id.sort_by_update -> changeAppsSort(HailData.SORT_UPDATE, item)
+            R.id.sort_by_checked -> changeAppsSort(HailData.SORT_CHECKED, item)
             R.id.filter_user_apps -> changeAppsFilter(HailData.FILTER_USER_APPS, item)
             R.id.filter_system_apps -> changeAppsFilter(HailData.FILTER_SYSTEM_APPS, item)
             R.id.filter_frozen_apps -> changeAppsFilter(HailData.FILTER_FROZEN_APPS, item)
@@ -236,8 +238,10 @@ class AppsFragment : MainFragment(), AppsAdapter.OnItemClickListener, AppsAdapte
     }
 
     private fun changeAppsSort(sort: String, item: MenuItem) {
-        item.isChecked = true
         HailData.changeAppsSort(sort)
+        if (sort == HailData.SORT_CHECKED)
+            item.isChecked = HailData.sortByChecked
+        else item.isChecked = true
         updateDisplayAppList()
     }
 

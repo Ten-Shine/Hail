@@ -140,4 +140,5 @@
     <string name="mode_island_hide">Island/Insular - Hide</string>
     <string name="mode_island_suspend">Island/Insular - Suspend</string>
     <string name="xposed_description">Automatically unfreeze when a scoped app attempts to open a suspended app</string>
+    <string name="sort_checked">Checked app</string>
 </resources>

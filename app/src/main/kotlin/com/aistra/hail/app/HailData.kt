@@ -59,6 +59,7 @@ object HailData {
     const val SORT_NAME = "name"
     const val SORT_INSTALL = "install"
     const val SORT_UPDATE = "update"
+    const val SORT_CHECKED = "checked"
     private const val KEY_ID = "id"
     const val KEY_TAG = "tag"
     private const val KEY_PINNED = "pinned"
@@ -83,6 +84,7 @@ object HailData {
     private val sp = PreferenceManager.getDefaultSharedPreferences(app)
     val workingMode get() = sp.getString(WORKING_MODE, MODE_DEFAULT)!!
     val sortBy get() = sp.getString(SORT_BY, SORT_NAME)
+    val sortByChecked get() = sp.getBoolean(SORT_CHECKED, true)
     val filterUserApps get() = sp.getBoolean(FILTER_USER_APPS, true)
     val filterSystemApps get() = sp.getBoolean(FILTER_SYSTEM_APPS, false)
     val filterFrozenApps get() = sp.getBoolean(FILTER_FROZEN_APPS, true)
@@ -143,7 +145,8 @@ object HailData {
         HFiles.write(appsPath, JSONArray().run {
             checkedList.forEach {
                 put(
-                    JSONObject().put(KEY_PACKAGE, it.packageName).put(KEY_PINNED, it.pinned).put(KEY_TAG, it.tagId)
+                    JSONObject().put(KEY_PACKAGE, it.packageName).put(KEY_PINNED, it.pinned)
+                        .put(KEY_TAG, it.tagId)
                         .put(KEY_WHITELISTED, it.whitelisted).put(KEY_WORKING_MODE, it.workingMode)
                 )
             }
@@ -189,7 +192,13 @@ object HailData {
         }
     }
 
-    fun changeAppsSort(sort: String) = sp.edit().putString(SORT_BY, sort).apply()
+    fun changeAppsSort(sort: String) {
+        if (sort == SORT_CHECKED)
+            sp.edit().putBoolean(SORT_CHECKED, !sortByChecked).apply()
+        else
+            sp.edit().putString(SORT_BY, sort).apply()
+    }
 
-    fun changeAppsFilter(filter: String, enabled: Boolean) = sp.edit().putBoolean(filter, enabled).apply()
+    fun changeAppsFilter(filter: String, enabled: Boolean) =
+        sp.edit().putBoolean(filter, enabled).apply()
 }
