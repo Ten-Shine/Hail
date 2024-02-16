@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.*
 import android.widget.ArrayAdapter
-import android.widget.FrameLayout
 import android.widget.ListView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.widget.SearchView
@@ -560,12 +559,14 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
     }
 
     private fun showTagDialog(list: List<AppInfo>? = null) {
-        val input = DialogInputBinding.inflate(layoutInflater, FrameLayout(activity), true)
-        input.inputLayout.setHint(if (list != null) R.string.action_tag_add else R.string.action_tag_set)
-        list ?: input.editText.setText(tag.first)
-        MaterialAlertDialogBuilder(activity).setView(input.root.parent as View)
+        val binding = DialogInputBinding.inflate(layoutInflater)
+        binding.inputLayout.setHint(R.string.tag)
+        list ?: binding.editText.setText(tag.first)
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(if (list != null) R.string.action_tag_add else R.string.action_tag_set)
+            .setView(binding.root)
             .setPositiveButton(android.R.string.ok) { _, _ ->
-                val tagName = input.editText.text.toString()
+                val tagName = binding.editText.text.toString()
                 val tagId = tagName.hashCode()
                 if (HailData.tags.any { it.first == tagName || it.second == tagId }) return@setPositiveButton
                 if (list != null) { // Add tag
