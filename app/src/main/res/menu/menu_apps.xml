@@ -47,6 +47,11 @@
                     android:id="@+id/sort_by_update"
                     android:title="@string/sort_update" />
             </group>
+            <group android:checkableBehavior="all">
+                <item
+                    android:id="@+id/sort_by_checked"
+                    android:title="@string/sort_checked" />
+            </group>
         </menu>
     </item>
 </menu>

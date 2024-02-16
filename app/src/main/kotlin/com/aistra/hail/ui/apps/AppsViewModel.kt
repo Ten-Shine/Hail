@@ -102,18 +102,22 @@ class AppsViewModel(application: Application) : AndroidViewModel(application) {
                         && (FuzzySearch.search(it.packageName, query)
                         || FuzzySearch.search(it.loadLabel(pm).toString(), query)
                         || PinyinSearch.searchPinyinAll(it.loadLabel(pm).toString(), query))
-            }.run {
+            }.toMutableList().apply {
                 when (HailData.sortBy) {
-                    HailData.SORT_INSTALL -> sortedBy {
+                    HailData.SORT_INSTALL -> sortBy {
                         HPackages.getUnhiddenPackageInfoOrNull(it.packageName)
                             ?.firstInstallTime ?: 0
                     }
 
-                    HailData.SORT_UPDATE -> sortedByDescending {
+                    HailData.SORT_UPDATE -> sortByDescending {
                         HPackages.getUnhiddenPackageInfoOrNull(it.packageName)?.lastUpdateTime ?: 0
                     }
 
-                    else -> sortedWith(NameComparator)
+                    else -> sortWith(NameComparator)
+                }
+
+                if (HailData.sortByChecked) sortByDescending {
+                    HailData.isChecked(it.packageName)
                 }
             }
         }
