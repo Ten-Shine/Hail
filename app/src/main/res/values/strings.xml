@@ -145,4 +145,6 @@
     <string name="command">Command</string>
     <string name="tag">Tag</string>
     <string name="ninekey_search" >Search With Nine-Key</string>
+    <string name="icon_text_size">Icon text size</string>
+    <string name="icon_text_singleline">Icon text singleline</string>
 </resources>
