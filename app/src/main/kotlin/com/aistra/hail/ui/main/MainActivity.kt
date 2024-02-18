@@ -90,7 +90,10 @@ class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedList
         bottomNav?.applyInsetsPadding(start = true, end = true, bottom = true)
         navRail?.applyInsetsPadding(start = true, top = true, bottom = true)
         fab.applyInsetsMargin(end = true, bottom = isLandscape)
-        appBarMain.root.consumeInsets(start = isLandscape, bottom = !isLandscape)
+        appBarMain.root.consumeInsets(
+            start = isLandscape,
+            bottom = !isLandscape && !HailData.useBottomSheet
+        )
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
