@@ -470,19 +470,19 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                     resources.getStringArray(R.array.working_mode_entries)[defaultIndex]
                 )
 
-                var selection = 0
+                var selection = -1
                 MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.working_mode)
                     .setSingleChoiceItems(
                         resources.getStringArray(R.array.working_mode_entries)
                             .mapIndexed { index, s ->
                                 if (index == 0) defaultString
                                 else s
-                            }.toTypedArray(), 0
+                            }.toTypedArray(), selection
                     ) { _, index ->
                         selection = index
                     }.setPositiveButton(android.R.string.ok) { dialog, _ ->
-                        for (app in selectedList) {
-                            app.workingMode =
+                        selectedList.forEach {
+                            it.workingMode =
                                 resources.getStringArray(R.array.working_mode_values)[selection]
                         }
                         deselect()
