@@ -50,6 +50,11 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
     private lateinit var pagerAdapter: PagerAdapter
     private var multiselect: Boolean
         set(value) {
+            if (value) requireActivity().onBackPressedDispatcher.addCallback(
+                viewLifecycleOwner,
+                onBackPressedCallback
+            )
+            else onBackPressedCallback.remove()
             (parentFragment as HomeFragment).multiselect = value
         }
         get() = (parentFragment as HomeFragment).multiselect
@@ -57,6 +62,15 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
     private val tabs: TabLayout get() = (parentFragment as HomeFragment).binding.tabs
     private val adapter get() = (parentFragment as HomeFragment).binding.pager.adapter as HomeAdapter
     private val tag: Pair<String, Int> get() = HailData.tags[tabs.selectedTabPosition]
+
+    private val onBackPressedCallback = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            activity.appbar.findViewById<Toolbar>(R.id.toolbar)?.run {
+                menu.performIdentifierAction(R.id.action_multiselect, 0)
+            }
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -111,23 +125,6 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
             updateCurrentList()
             binding.refresh.isRefreshing = false
         }
-        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner,
-            object : OnBackPressedCallback(true) {
-                override fun handleOnBackPressed() {
-                    if (multiselect) {
-                        multiselect = false
-                        deselect()
-                        if (!HailData.useBottomSheet) {
-                            activity.appbar.findViewById<Toolbar>(R.id.toolbar)?.run {
-                                menu.findItem(R.id.action_multiselect)?.updateIcon()
-                            }
-                        }
-                    } else {
-                        requireActivity().finish()
-                    }
-                }
-            }
-        )
         return binding.root
     }
 
