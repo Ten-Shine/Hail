@@ -400,19 +400,19 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
             }
 
             6 -> {
-                val selections =
+                val choices =
                     BooleanArray(HailData.tags.size) { HailData.tags[it].second in info.tagId }
                 MaterialAlertDialogBuilder(activity).setTitle(R.string.action_tag_set)
                     .setMultiChoiceItems(
-                        HailData.tags.map { it.first }.toTypedArray(), selections
+                        HailData.tags.map { it.first }.toTypedArray(), choices
                     ) { _, index, isChecked ->
-                        selections[index] = isChecked
+                        choices[index] = isChecked
                     }.setNeutralButton(R.string.action_tag_add) { _, _ ->
                         showTagDialog(listOf(info))
                     }.setPositiveButton(android.R.string.ok) { _, _ ->
-                        val newTagId =
-                            selections.mapIndexed { index, b -> if (b) HailData.tags[index].second else -1 }
-                                .filter { it != -1 }.toMutableList()
+                        val newTagId = choices.toMutableList().mapIndexedNotNull { index, checked ->
+                            if (checked) HailData.tags[index].second else null
+                        }
                         if (info.tagId != newTagId) {
                             info.tagId.clear()
                             info.tagId.addAll(newTagId)
@@ -494,21 +494,20 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
             }
 
             3 -> {
-                val selections = if (selectedList.all { it.tagId == selectedList[0].tagId })
+                val choices = if (selectedList.all { it.tagId == selectedList[0].tagId })
                     BooleanArray(HailData.tags.size) {
                         HailData.tags[it].second in selectedList[0].tagId
                     }
                 else booleanArrayOf(false)
                 MaterialAlertDialogBuilder(activity).setTitle(R.string.action_tag_set)
                     .setMultiChoiceItems(
-                        HailData.tags.map { it.first }.toTypedArray(), selections
+                        HailData.tags.map { it.first }.toTypedArray(), choices
                     ) { _, index, isChecked ->
-                        selections[index] = isChecked
+                        choices[index] = isChecked
                     }.setPositiveButton(android.R.string.ok) { dialog, _ ->
-                        val newTagId =
-                            selections.mapIndexed { index, b -> if (b) HailData.tags[index].second else -1 }
-                                .filter { it != -1 }.toMutableList()
-
+                        val newTagId = choices.toMutableList().mapIndexedNotNull { index, checked ->
+                            if (checked) HailData.tags[index].second else null
+                        }
                         selectedList.forEach {
                             if (it.tagId != newTagId) {
                                 it.tagId.clear()
@@ -595,7 +594,6 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                 if (HailData.tags.any { it.first == tagName || it.second == tagId }) return@setPositiveButton
                 if (list != null) { // Add tag
                     HailData.tags.add(tagName to tagId)
-                    list.forEach { it.tagId.add(tagId) }
                     adapter.notifyItemInserted(adapter.itemCount - 1)
                     if (query.isEmpty() && tabs.tabCount == 2) tabs.isVisible = true
                     if (list == selectedList) deselect(false)
