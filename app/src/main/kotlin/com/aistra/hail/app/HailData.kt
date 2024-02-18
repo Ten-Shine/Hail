@@ -118,7 +118,7 @@ object HailData {
                         AppInfo(
                             getString(KEY_PACKAGE),
                             optBoolean(KEY_PINNED),
-                            optInt(KEY_TAG),
+                            optString(KEY_TAG).split(", ").map { it.toInt() }.toMutableList(),
                             optBoolean(KEY_WHITELISTED),
                             optString(KEY_WORKING_MODE, MODE_DEFAULT)
                         )
@@ -130,7 +130,11 @@ object HailData {
 
     fun isChecked(packageName: String): Boolean = checkedList.any { it.packageName == packageName }
 
-    fun addCheckedApp(packageName: String, saveApps: Boolean = true, tagId: Int = 0) {
+    fun addCheckedApp(
+        packageName: String,
+        saveApps: Boolean = true,
+        tagId: MutableList<Int> = mutableListOf(0)
+    ) {
         checkedList.add(AppInfo(packageName, false, tagId, false, MODE_DEFAULT))
         if (saveApps) saveApps()
     }
@@ -146,7 +150,7 @@ object HailData {
             checkedList.forEach {
                 put(
                     JSONObject().put(KEY_PACKAGE, it.packageName).put(KEY_PINNED, it.pinned)
-                        .put(KEY_TAG, it.tagId)
+                        .put(KEY_TAG, it.tagId.joinToString(", "))
                         .put(KEY_WHITELISTED, it.whitelisted).put(KEY_WORKING_MODE, it.workingMode)
                 )
             }
