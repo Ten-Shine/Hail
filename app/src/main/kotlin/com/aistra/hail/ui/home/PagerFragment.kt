@@ -152,7 +152,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
     }
 
     private fun updateCurrentList() = HailData.checkedList.filter {
-        if (query.isEmpty()) it.tagId == tag.second
+        if (query.isEmpty()) tag.second in it.tagId
         else if (HailData.useNineKey) NineKeySearch.searchAll(
             it.name.toString(),
             it.packageName,
@@ -400,20 +400,26 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
             }
 
             6 -> {
-                val checked = HailData.tags.indexOfFirst { it.second == info.tagId }
+                val selections =
+                    BooleanArray(HailData.tags.size) { HailData.tags[it].second in info.tagId }
                 MaterialAlertDialogBuilder(activity).setTitle(R.string.action_tag_set)
-                    .setSingleChoiceItems(
-                        HailData.tags.map { it.first }.toTypedArray(), checked
-                    ) { dialog, index ->
-                        if (info.tagId != HailData.tags[index].second) {
-                            info.tagId = HailData.tags[index].second
+                    .setMultiChoiceItems(
+                        HailData.tags.map { it.first }.toTypedArray(), selections
+                    ) { _, index, isChecked ->
+                        selections[index] = isChecked
+                    }.setNeutralButton(R.string.action_tag_add) { _, _ ->
+                        showTagDialog(listOf(info))
+                    }.setPositiveButton(android.R.string.ok) { _, _ ->
+                        val newTagId =
+                            selections.mapIndexed { index, b -> if (b) HailData.tags[index].second else -1 }
+                                .filter { it != -1 }.toMutableList()
+                        if (info.tagId != newTagId) {
+                            info.tagId.clear()
+                            info.tagId.addAll(newTagId)
                             HailData.saveApps()
                             updateCurrentList()
                         }
                         if (multiselect && info in selectedList) deselect()
-                        dialog.dismiss()
-                    }.setNeutralButton(R.string.action_tag_add) { _, _ ->
-                        showTagDialog(listOf(info))
                     }.setNegativeButton(android.R.string.cancel, null).show()
             }
 
@@ -488,13 +494,27 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
             }
 
             3 -> {
-                val checked = if (selectedList.all { it.tagId == selectedList[0].tagId })
-                    HailData.tags.indexOfFirst { it.second == selectedList[0].tagId } else -1
+                val selections = if (selectedList.all { it.tagId == selectedList[0].tagId })
+                    BooleanArray(HailData.tags.size) {
+                        HailData.tags[it].second in selectedList[0].tagId
+                    }
+                else booleanArrayOf(false)
                 MaterialAlertDialogBuilder(activity).setTitle(R.string.action_tag_set)
-                    .setSingleChoiceItems(
-                        HailData.tags.map { it.first }.toTypedArray(), checked
-                    ) { dialog, index ->
-                        selectedList.forEach { it.tagId = HailData.tags[index].second }
+                    .setMultiChoiceItems(
+                        HailData.tags.map { it.first }.toTypedArray(), selections
+                    ) { _, index, isChecked ->
+                        selections[index] = isChecked
+                    }.setPositiveButton(android.R.string.ok) { dialog, _ ->
+                        val newTagId =
+                            selections.mapIndexed { index, b -> if (b) HailData.tags[index].second else -1 }
+                                .filter { it != -1 }.toMutableList()
+
+                        selectedList.forEach {
+                            if (it.tagId != newTagId) {
+                                it.tagId.clear()
+                                it.tagId.addAll(newTagId)
+                            }
+                        }
                         HailData.saveApps()
                         deselect()
                         dialog.dismiss()
@@ -575,19 +595,27 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                 if (HailData.tags.any { it.first == tagName || it.second == tagId }) return@setPositiveButton
                 if (list != null) { // Add tag
                     HailData.tags.add(tagName to tagId)
-                    list.forEach { it.tagId = tagId }
+                    list.forEach { it.tagId.add(tagId) }
                     adapter.notifyItemInserted(adapter.itemCount - 1)
                     if (query.isEmpty() && tabs.tabCount == 2) tabs.isVisible = true
                     if (list == selectedList) deselect(false)
                     tabs.selectTab(tabs.getTabAt(tabs.tabCount - 1))
                 } else { // Rename tag
                     val position = tabs.selectedTabPosition
+                    val originTagId = HailData.tags[position].second
                     val defaultTab = position == 0
                     HailData.tags.run {
                         removeAt(position)
                         add(position, tagName to if (defaultTab) 0 else tagId)
                     }
-                    if (!defaultTab) pagerAdapter.currentList.forEach { it.tagId = tagId }
+                    if (!defaultTab) pagerAdapter.currentList.forEach {
+                        it.tagId.forEachIndexed { index, i ->
+                            if (i == originTagId) {
+                                it.tagId[index] = tagId
+                                return@forEachIndexed
+                            }
+                        }
+                    }
                     adapter.notifyItemChanged(position)
                 }
                 HailData.saveApps()
@@ -596,7 +624,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                 val position = tabs.selectedTabPosition
                 if (list != null || position == 0) return@apply
                 setNeutralButton(R.string.action_tag_remove) { _, _ ->
-                    pagerAdapter.currentList.forEach { it.tagId = 0 }
+                    pagerAdapter.currentList.forEach { it.tagId.remove(HailData.tags[position].second) }
                     tabs.selectTab(tabs.getTabAt(0))
                     HailData.tags.removeAt(position)
                     adapter.notifyItemRemoved(position)
@@ -630,7 +658,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
         for (index in 0 until json.length()) {
             val pkg = json.getString(index)
             if (HPackages.getApplicationInfoOrNull(pkg) != null && !HailData.isChecked(pkg)) {
-                HailData.addCheckedApp(pkg, false, tag.second)
+                HailData.addCheckedApp(pkg, false, mutableListOf(tag.second))
                 i++
             }
         }
@@ -644,7 +672,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
     private suspend fun importFrozenApp() = withContext(Dispatchers.IO) {
         HPackages.getInstalledApplications().map { it.packageName }
             .filter { AppManager.isAppFrozen(it) && !HailData.isChecked(it) }
-            .onEach { HailData.addCheckedApp(it, false, tag.second) }.size
+            .onEach { HailData.addCheckedApp(it, false, mutableListOf(tag.second)) }.size
     }
 
     private fun removeCheckedApp(packageName: String, saveApps: Boolean = true) {

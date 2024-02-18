@@ -7,7 +7,7 @@ import com.aistra.hail.utils.HPackages
 class AppInfo(
     val packageName: String,
     var pinned: Boolean,
-    var tagId: Int,
+    val tagId: MutableList<Int>,
     var whitelisted: Boolean,
     var workingMode: String
 ) {
