@@ -553,7 +553,10 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val tagName = input.editText.text.toString()
                 val tagId = tagName.hashCode()
-                if (HailData.tags.any { it.first == tagName || it.second == tagId }) return@setPositiveButton
+                if (HailData.tags.any { it.first == tagName || it.second == tagId }) {
+                    list?.let { showSetTagDialog(it) }
+                    return@setPositiveButton
+                }
                 HailData.tags.add(tagName to tagId)
                 adapter.notifyItemInserted(adapter.itemCount - 1)
                 if (query.isEmpty() && tabs.tabCount == 2) tabs.isVisible = true
