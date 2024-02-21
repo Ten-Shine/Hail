@@ -124,7 +124,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
         updateBarTitle()
         activity.appbar.setLiftOnScrollTargetView(binding.recyclerView)
         tabs.getTabAt(tabs.selectedTabPosition)?.view?.setOnLongClickListener {
-            if (isResumed) showTagDialog()
+            if (isResumed) showChangeTagDialog()
             true
         }
         activity.fab.setOnClickListener {
@@ -398,7 +398,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                         if (multiselect && info in selectedList) deselect()
                         dialog.dismiss()
                     }.setNeutralButton(R.string.action_tag_add) { _, _ ->
-                        showTagDialog(listOf(info))
+                        showAddTagDialog(listOf(info))
                     }.setNegativeButton(android.R.string.cancel, null).show()
             }
 
@@ -484,7 +484,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                         deselect()
                         dialog.dismiss()
                     }.setNeutralButton(R.string.action_tag_add) { _, _ ->
-                        showTagDialog(selectedList)
+                        showAddTagDialog(selectedList)
                     }.setNegativeButton(android.R.string.cancel, null).show()
             }
 
@@ -547,37 +547,47 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
         }
     }
 
-    private fun showTagDialog(list: List<AppInfo>? = null) {
+    private fun showAddTagDialog(list: List<AppInfo>? = null) {
         val input = DialogInputBinding.inflate(layoutInflater, FrameLayout(activity), true)
-        input.inputLayout.setHint(if (list != null) R.string.action_tag_add else R.string.action_tag_set)
-        list ?: input.editText.setText(tag.first)
+        input.inputLayout.setHint(R.string.action_tag_add)
         MaterialAlertDialogBuilder(activity).setView(input.root.parent as View)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val tagName = input.editText.text.toString()
                 val tagId = tagName.hashCode()
                 if (HailData.tags.any { it.first == tagName || it.second == tagId }) return@setPositiveButton
-                if (list != null) { // Add tag
-                    HailData.tags.add(tagName to tagId)
-                    list.forEach { it.tagId = tagId }
-                    adapter.notifyItemInserted(adapter.itemCount - 1)
-                    if (query.isEmpty() && tabs.tabCount == 2) tabs.isVisible = true
-                    if (list == selectedList) deselect(false)
-                    tabs.selectTab(tabs.getTabAt(tabs.tabCount - 1))
-                } else { // Rename tag
-                    val position = tabs.selectedTabPosition
-                    val defaultTab = position == 0
-                    HailData.tags.run {
-                        removeAt(position)
-                        add(position, tagName to if (defaultTab) 0 else tagId)
-                    }
-                    if (!defaultTab) pagerAdapter.currentList.forEach { it.tagId = tagId }
-                    adapter.notifyItemChanged(position)
+                HailData.tags.add(tagName to tagId)
+                list?.forEach { it.tagId = tagId }
+                adapter.notifyItemInserted(adapter.itemCount - 1)
+                if (query.isEmpty() && tabs.tabCount == 2) tabs.isVisible = true
+                if (list == selectedList) deselect(false)
+                tabs.selectTab(tabs.getTabAt(tabs.tabCount - 1))
+                HailData.saveApps()
+                HailData.saveTags()
+            }.setNegativeButton(android.R.string.cancel, null).show()
+    }
+
+    private fun showChangeTagDialog() {
+        val input = DialogInputBinding.inflate(layoutInflater, FrameLayout(activity), true)
+        input.inputLayout.setHint(R.string.action_tag_set)
+        input.editText.setText(tag.first)
+        MaterialAlertDialogBuilder(activity).setView(input.root.parent as View)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val tagName = input.editText.text.toString()
+                val tagId = tagName.hashCode()
+                if (HailData.tags.any { it.first == tagName || it.second == tagId }) return@setPositiveButton
+                val position = tabs.selectedTabPosition
+                val defaultTab = position == 0
+                HailData.tags.run {
+                    removeAt(position)
+                    add(position, tagName to if (defaultTab) 0 else tagId)
                 }
+                if (!defaultTab) pagerAdapter.currentList.forEach { it.tagId = tagId }
+                adapter.notifyItemChanged(position)
                 HailData.saveApps()
                 HailData.saveTags()
             }.apply {
                 val position = tabs.selectedTabPosition
-                if (list != null || position == 0) return@apply
+                if (position == 0) return@apply
                 setNeutralButton(R.string.action_tag_remove) { _, _ ->
                     pagerAdapter.currentList.forEach { it.tagId = 0 }
                     tabs.selectTab(tabs.getTabAt(0))
