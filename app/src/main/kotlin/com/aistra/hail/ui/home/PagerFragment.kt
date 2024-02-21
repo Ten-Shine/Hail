@@ -231,7 +231,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
             updateBarTitle()
             return
         }
-        launchApp(info.packageName)
+        launchApp(info.packageName, info.workingMode)
     }
 
     override fun onItemLongClick(info: AppInfo): Boolean {
@@ -318,7 +318,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
         val frozen = AppManager.isAppFrozen(pkg)
         val action = getString(if (frozen) R.string.action_unfreeze else R.string.action_freeze)
         when (which) {
-            0 -> launchApp(pkg)
+            0 -> launchApp(pkg, info.workingMode)
             1 -> setListFrozen(!frozen, listOf(info))
             2 -> {
                 val values = resources.getIntArray(R.array.deferred_task_values)
@@ -481,9 +481,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
         }
     }
 
-    private fun launchApp(packageName: String) {
-        val workingMode = HailData.checkedList.find { it.packageName == packageName }
-            ?.workingMode.takeUnless { it == HailData.MODE_DEFAULT } ?: HailData.workingMode
+    private fun launchApp(packageName: String, workingMode: String) {
         if (AppManager.isAppFrozen(packageName) &&
             AppManager.setAppFrozen(packageName, false, workingMode)
         ) {
