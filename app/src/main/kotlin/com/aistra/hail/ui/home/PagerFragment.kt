@@ -156,11 +156,9 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
     private fun updateBottomSheet(info: AppInfo? = null) {
         val bottomSheet = activity.bottomSheet
         val bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet)
-        val bottomNav: BottomNavigationView? = activity.findViewById(R.id.bottom_nav)
 
         if (!HailData.useBottomSheet || !multiselect || selectedList.isEmpty() || info == null) {
             bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
-            bottomNav?.visibility = View.VISIBLE
             return
         }
 
@@ -198,7 +196,6 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
         }
 
         if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_HIDDEN) {
-            bottomNav?.visibility = View.GONE
             if (selectedList.size == 1) {
                 bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
             } else {
