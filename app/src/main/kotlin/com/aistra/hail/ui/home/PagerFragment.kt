@@ -167,7 +167,6 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
         if (onMultiSelect(info, actions)) return true
         val pkg = info.packageName
         val frozen = AppManager.isAppFrozen(pkg)
-        val action = getString(if (frozen) R.string.action_unfreeze else R.string.action_freeze)
         MaterialAlertDialogBuilder(activity).setTitle(info.name).setItems(
             actions.filter {
                 (it != getString(R.string.action_freeze) || !frozen) && (it != getString(R.string.action_unfreeze) || frozen) && (it != getString(
@@ -179,52 +178,77 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                 ) || frozen)
             }.toTypedArray()
         ) { _, which ->
-            when (which) {
-                0 -> launchApp(pkg, info.workingMode)
-                1 -> setListFrozen(!frozen, listOf(info))
-                2 -> {
-                    val values = resources.getIntArray(R.array.deferred_task_values)
+            onSingleAppActionHandle(info, actions[which])
+        }.setNeutralButton(R.string.action_details) { _, _ ->
+            HUI.startActivity(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS, HPackages.packageUri(pkg)
+            )
+        }.setNegativeButton(android.R.string.cancel, null).show()
+        return true
+    }
+
+    private fun deselect(update: Boolean = true) {
+        selectedList.clear()
+        if (!update) return
+        updateCurrentList()
+        updateBarTitle()
+    }
+
+    private fun onSingleAppActionHandle(info: AppInfo, action: String) {
+        val pkg = info.packageName
+        val frozen = AppManager.isAppFrozen(pkg)
+        resources.apply {
+            when (action) {
+                getString(R.string.action_launch) -> launchApp(pkg, info.workingMode)
+
+                getString(R.string.action_freeze),
+                getString(R.string.action_unfreeze) -> setListFrozen(!frozen, listOf(info))
+
+                getString(R.string.action_deferred_task) -> {
+                    val values = getIntArray(R.array.deferred_task_values)
                     val entries = arrayOfNulls<String>(values.size)
                     values.forEachIndexed { i, it ->
                         entries[i] =
-                            resources.getQuantityString(R.plurals.deferred_task_entry, it, it)
+                            getQuantityString(R.plurals.deferred_task_entry, it, it)
                     }
                     MaterialAlertDialogBuilder(activity).setTitle(R.string.action_deferred_task)
                         .setItems(entries) { _, i ->
                             HWork.setDeferredFrozen(pkg, !frozen, values[i].toLong())
                             Snackbar.make(
-                                activity.fab, resources.getQuantityString(
+                                activity.fab, getQuantityString(
                                     R.plurals.msg_deferred_task,
                                     values[i],
                                     values[i],
-                                    action,
+                                    getString(if (frozen) R.string.action_unfreeze else R.string.action_freeze),
                                     info.name
                                 ), Snackbar.LENGTH_INDEFINITE
                             ).setAction(R.string.action_undo) { HWork.cancelWork(pkg) }.show()
                         }.setNegativeButton(android.R.string.cancel, null).show()
                 }
 
-                3 -> {
+                getString(R.string.action_pin),
+                getString(R.string.action_unpin) -> {
                     info.pinned = !info.pinned
                     HailData.saveApps()
                     updateCurrentList()
                 }
 
-                4 -> {
+                getString(R.string.action_whitelist),
+                getString(R.string.action_remove_whitelist) -> {
                     info.whitelisted = !info.whitelisted
                     HailData.saveApps()
                     info.selected = !info.selected // This is a workaround to make contents not same
                     updateCurrentList()
                 }
 
-                5 -> {
+                getString(R.string.action_working_mode) -> {
                     val defaultString =
                         HailData.workingModeText(requireContext(), HailData.MODE_DEFAULT)
-                    var selection = resources.getStringArray(R.array.working_mode_values)
+                    var selection = getStringArray(R.array.working_mode_values)
                         .indexOf(info.workingMode)
                     MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.working_mode)
                         .setSingleChoiceItems(
-                            resources.getStringArray(R.array.working_mode_entries)
+                            getStringArray(R.array.working_mode_entries)
                                 .mapIndexed { index, s ->
                                     if (index == 0) defaultString
                                     else s
@@ -233,14 +257,16 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                             selection = index
                         }.setPositiveButton(android.R.string.ok) { _, _ ->
                             info.workingMode =
-                                resources.getStringArray(R.array.working_mode_values)[selection]
+                                getStringArray(R.array.working_mode_values)[selection]
                             HailData.saveApps()
                         }.setNegativeButton(android.R.string.cancel, null).show()
                 }
 
-                6 -> showSetTagDialog(listOf(info))
+                getString(R.string.action_tag_set) -> showSetTagDialog(listOf(info))
 
-                7 -> MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.action_unfreeze_tag)
+                getString(R.string.action_add_pin_shortcut) -> MaterialAlertDialogBuilder(
+                    requireActivity()
+                ).setTitle(R.string.action_unfreeze_tag)
                     .setItems(HailData.tags.map { it.first }.toTypedArray()) { _, index ->
                         HShortcuts.addPinShortcut(
                             info,
@@ -258,26 +284,77 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                         )
                     }.setNegativeButton(android.R.string.cancel, null).show()
 
-                8 -> exportToClipboard(listOf(info))
-                9 -> removeCheckedApp(pkg)
-                10 -> {
+                getString(R.string.action_export_clipboard) -> exportToClipboard(listOf(info))
+                getString(R.string.action_remove_home) -> removeCheckedApp(pkg)
+                getString(R.string.action_unfreeze_remove_home) -> {
                     setListFrozen(false, listOf(info), false)
                     if (!AppManager.isAppFrozen(pkg)) removeCheckedApp(pkg)
                 }
             }
-        }.setNeutralButton(R.string.action_details) { _, _ ->
-            HUI.startActivity(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS, HPackages.packageUri(pkg)
-            )
-        }.setNegativeButton(android.R.string.cancel, null).show()
-        return true
+        }
     }
 
-    private fun deselect(update: Boolean = true) {
-        selectedList.clear()
-        if (!update) return
-        updateCurrentList()
-        updateBarTitle()
+    private fun onMultiAppsActionHandle(list: List<AppInfo>, action: String) {
+        when (action) {
+            getString(R.string.action_freeze) -> {
+                setListFrozen(true, selectedList, false)
+                deselect()
+            }
+
+            getString(R.string.action_unfreeze) -> {
+                setListFrozen(false, selectedList, false)
+                deselect()
+            }
+
+            getString(R.string.action_working_mode) -> {
+                val defaultString =
+                    HailData.workingModeText(requireContext(), HailData.MODE_DEFAULT)
+                var selection =
+                    if (selectedList.all { it.workingMode == selectedList[0].workingMode })
+                        resources.getStringArray(R.array.working_mode_values)
+                            .indexOf(selectedList[0].workingMode)
+                    else -1
+                MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.working_mode)
+                    .setSingleChoiceItems(
+                        resources.getStringArray(R.array.working_mode_entries)
+                            .mapIndexed { index, s ->
+                                if (index == 0) defaultString
+                                else s
+                            }.toTypedArray(), selection
+                    ) { _, index ->
+                        selection = index
+                    }.setPositiveButton(android.R.string.ok) { _, _ ->
+                        if (selection != -1) selectedList.forEach {
+                            it.workingMode =
+                                resources.getStringArray(R.array.working_mode_values)[selection]
+                        }
+                        deselect()
+                    }.setNegativeButton(android.R.string.cancel, null).show()
+            }
+
+            getString(R.string.action_tag_set) -> showSetTagDialog(selectedList)
+
+            getString(R.string.action_export_clipboard) -> {
+                exportToClipboard(selectedList)
+                deselect()
+            }
+
+            getString(R.string.action_remove_home) -> {
+                selectedList.forEach { removeCheckedApp(it.packageName, false) }
+                HailData.saveApps()
+                deselect()
+            }
+
+            getString(R.string.action_unfreeze_remove_home) -> {
+                setListFrozen(false, selectedList, false)
+                selectedList.forEach {
+                    if (!AppManager.isAppFrozen(it.packageName))
+                        removeCheckedApp(it.packageName, false)
+                }
+                HailData.saveApps()
+                deselect()
+            }
+        }
     }
 
     private fun onMultiSelect(info: AppInfo, actions: Array<String>): Boolean {
@@ -293,66 +370,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener,
                 R.string.action_whitelist
             ) && it != getString(R.string.action_remove_whitelist)
         }.toTypedArray()) { _, which ->
-            when (which) {
-                0 -> {
-                    setListFrozen(true, selectedList, false)
-                    deselect()
-                }
-
-                1 -> {
-                    setListFrozen(false, selectedList, false)
-                    deselect()
-                }
-
-                2 -> {
-                    val defaultString =
-                        HailData.workingModeText(requireContext(), HailData.MODE_DEFAULT)
-                    var selection =
-                        if (selectedList.all { it.workingMode == selectedList[0].workingMode })
-                            resources.getStringArray(R.array.working_mode_values)
-                                .indexOf(selectedList[0].workingMode)
-                        else -1
-                    MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.working_mode)
-                        .setSingleChoiceItems(
-                            resources.getStringArray(R.array.working_mode_entries)
-                                .mapIndexed { index, s ->
-                                    if (index == 0) defaultString
-                                    else s
-                                }.toTypedArray(), selection
-                        ) { _, index ->
-                            selection = index
-                        }.setPositiveButton(android.R.string.ok) { _, _ ->
-                            if (selection != -1) selectedList.forEach {
-                                it.workingMode =
-                                    resources.getStringArray(R.array.working_mode_values)[selection]
-                            }
-                            deselect()
-                        }.setNegativeButton(android.R.string.cancel, null).show()
-                }
-
-                3 -> showSetTagDialog(selectedList)
-
-                4 -> {
-                    exportToClipboard(selectedList)
-                    deselect()
-                }
-
-                5 -> {
-                    selectedList.forEach { removeCheckedApp(it.packageName, false) }
-                    HailData.saveApps()
-                    deselect()
-                }
-
-                6 -> {
-                    setListFrozen(false, selectedList, false)
-                    selectedList.forEach {
-                        if (!AppManager.isAppFrozen(it.packageName))
-                            removeCheckedApp(it.packageName, false)
-                    }
-                    HailData.saveApps()
-                    deselect()
-                }
-            }
+            onMultiAppsActionHandle(selectedList, actions[which])
         }.setNegativeButton(R.string.action_deselect) { _, _ ->
             deselect()
         }.setNeutralButton(R.string.action_select_all) { _, _ ->
